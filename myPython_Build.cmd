@@ -10,9 +10,9 @@
 @ECHO off
 
 :: -- ADMIN NOTES: Set myPython Version Name Here
-SET VERSION=myPython_37600
-:: -- ADMIN NOTES: Set Python Distribution Folder Name Here ie ...\Programs\Python\Python37\... = Python37
-SET PYFOLDER=Python37
+SET VERSION=myPython_38100
+:: -- ADMIN NOTES: Set Python Distribution Folder Name Here ie ...\Programs\Python\Python38\... = Python38
+SET PYFOLDER=Python38
 
 :: No need to modify anything below here.
 ::============================================================================================================
@@ -40,9 +40,9 @@ IF EXIST "c:\Program Files (x86)\NSIS\Bin\makensis.exe" (
 
 :: Download Python Wheels
 COPY /y package_list.txt packages\package_list.txt
-SET PATH=%PATH%;%LOCALAPPDATA%\Programs\Python\%PYFOLDER%;%LOCALAPPDATA%\Programs\Python\%PYFOLDER%\Scripts
+SET PATH=%LOCALAPPDATA%\Programs\Python\%PYFOLDER%;%LOCALAPPDATA%\Programs\Python\%PYFOLDER%\Scripts;%PATH%
 python.exe -m pip install --upgrade pip
-::FOR /f "tokens=*" %%A IN (packages\package_list.txt) DO python.exe -m pip download --no-deps %%A -d packages\site-packages\
+FOR /f "tokens=*" %%A IN (packages\package_list.txt) DO python.exe -m pip download --no-deps %%A -d packages\site-packages\
 
 :: Create Wheel List
 BREAK > packages\wheel.list
@@ -63,36 +63,17 @@ FOR /f "tokens=*" %%A IN ('dir /b packages\venv\*.*') DO ECHO packages\venv\%%A 
 
 :: Create myPython User Installer
 SET INSTNAME=Install_%VERSION%
-FOR /f "tokens=*" %%A IN ('dir /b myPython.exe') DO REN %%A %VERSION%%%~xA
-BREAK > %INSTNAME%.cmd
-ECHO @ECHO OFF>>%INSTNAME%.cmd
-ECHO SET VERSION=%VERSION%>>%INSTNAME%.cmd
-ECHO SET PYFOLDER=%PYFOLDER%>>%INSTNAME%.cmd
-ECHO CD myInstall>>%INSTNAME%.cmd
-ECHO IF EXIST %%LOCALAPPDATA%%\Programs\Python\%%PYFOLDER%%\python.exe ( ECHO %%PYFOLDER%% Found ) ELSE ( FOR /f "tokens=*" %%%%G IN ('dir /b resources\python\*.exe') DO resources\python\%%%%G)>>%INSTNAME%.cmd
-
-ECHO ECHO Adding %%PYFOLDER%% to PATH...>>%INSTNAME%.cmd
-ECHO powershell -command "[Environment]::SetEnvironmentVariable(\"PATH\", \"$env:LOCALAPPDATA\Programs\Python\%PYFOLDER%\Scripts\", \"User\")">>%INSTNAME%.cmd
-ECHO ECHO Adding %%PYFOLDER%%\Scripts to PATH...>>%INSTNAME%.cmd
-ECHO powershell -command "[Environment]::SetEnvironmentVariable(\"PATH\", \"$env:LOCALAPPDATA\Programs\Python\%PYFOLDER%\", \"User\")">>%INSTNAME%.cmd
-ECHO ECHO Running %%VERSION%% Installer...
-ECHO %%VERSION%%.exe>>Install_%VERSION%.cmd
+FOR /f "tokens=*" %%A IN ('dir /b myPython.exe') DO REN %%A %INSTNAME%%%~xA
 
 :: Create User Installer Archive
 IF EXIST %VERSION%.zip ( DEL %VERSION%.zip )
-XCOPY /E /I /Y packages myInstall\packages\
-XCOPY /E /I /Y resources myInstall\resources\
-COPY /Y %VERSION%.exe myInstall\%VERSION%.exe
-attrib +h myInstall
-powershell -command "Compress-Archive -Path %CD%\myInstall\ -DestinationPath %VERSION%.zip"
-powershell -command "Compress-Archive -Path %CD%\%INSTNAME%.cmd -DestinationPath %VERSION%.zip -Update"
-attrib +h %VERSION%.zip\myInstall
-pause
+powershell -command "Compress-Archive -Path %INSTNAME%.exe -DestinationPath %VERSION%.zip -Update"
+powershell -command "Compress-Archive -Path %CD%\packages\ -DestinationPath %VERSION%.zip -Update"
+powershell -command "Compress-Archive -Path %CD%\resources\ -DestinationPath %VERSION%.zip -Update"
+
 :: Clear Temporary Files
-DEL %VERSION%.exe
+
+DEL %INSTNAME%.exe
 DEL %INSTNAME%.cmd
 DEL packages\package_list.txt
-RD /S /Q myInstall\
-
-:: Add result to PATH
-powershell -command "[Environment]::SetEnvironmentVariable(\"PATH\", \"$env:C:\virtualenvs\%VERSION%\Scripts\", \"User\")"
+RD /S /Q %VERSION%\
